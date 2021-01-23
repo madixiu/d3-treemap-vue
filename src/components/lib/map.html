@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+<title>نقشه بازار</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta name="keywords" content="نقشه بازار,نقشه بورس,market heatmap">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="cache-control" content="no-cache">
+<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Refresh" content="3600">
+<!-- <link th:href="@{///fonts.googleapis.com/css?family=Lato:400,700,900" rel="stylesheet" type="text/css"> -->
+<link rel="stylesheet" href="lib/base.css" />
+<link rel="stylesheet" href="lib/common.css" />
+<link rel="stylesheet" href="lib/map.css" />
+<link rel="stylesheet" href="lib/znty.css" type="text/css">
+<!--<link rel="icon" type="image/png" th:href="@{/favicon_2x.png}" sizes="32x32">-->
+<!--<link rel="icon" type="image/png" th:href="@{/favicon.png}" sizes="16x16">-->
+<style type="text/css">
+#tb_header{display: none;}
+ 
+.content{width: 100%;}
+/* .container.is-wide{width:1915px}*/
+.content.map .view{padding-left: 0;height: 60px;background:#383b44;padding: 7px 0 13px 0;}
+.content.map .view .view-select{width: 387px;border-right:none;margin-left: 16px;}
+.content.map .view .map_nav_a{font-size: 16px;line-height: 45px;display: inline-block;width: 112px;height: 45px;text-align: center;padding:0;color: #fefefe;background: #535663;border-radius: 3px;}
+.content.map .view .map_nav_a.is-active{font-weight: 400;background: #ee5752;}
+.pull-right{display: none;}
+h3{font-size:2px;}
+</style>
+<script type="text/javascript">FinvizSettings = {hasUserPremium: false, name: ""};</script>
+
+</head>
+<body class="has-map" style="margin:0" bgcolor="#ffffff">
+
+<div class="content map">
+<div class="narrow">
+<span class="currentTime"></span>
+<a id="narrow"><img src="./lib/narrow.png"/></a>
+</div>
+<div class="container is-wide"  >
+    
+        <div class="zoom pull-right"></div>
+        <div class="fr enlarge">
+            <span class="currentTime"></span>
+            <a id="enlage"><img src="./lib/enlarge.png"/></a>
+        </div>
+    </div>
+    <div class="map-scan">
+       
+				
+           
+      
+            <div id="map" class="">
+                <div id="body"></div>
+                <div id="legend"></div>
+                <div id="hover-wrapper"></div>
+            </div>
+            <div class="map_bt clearfix map_bt_min">
+                <div class="map_scale map_scale_min"></div>
+            </div>
+        </div>
+ 
+    <div id="modal"></div>
+</div>
+
+<script src="lib/jquery2.2.4.min.js"></script>
+<script src="lib/d3-json.js"></script>
+<script src="lib/com.js"></script>
+<script src="lib/react-with-addons.min.js"></script>
+<script src="lib/d3.js"></script>
+<script src="lib/hammer.min.js"></script>
+<script src="lib/map.bundle.js"></script>
+<script src="lib/map.js"></script>
+<script type="text/javascript">function OnResize(){}window.onresize=OnResize;OnResize();</script>
+</body>
+</html>
