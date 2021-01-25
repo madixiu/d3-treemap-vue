@@ -10,7 +10,7 @@
           <rect 
             :height="height" 
             :width="width" 
-            :y="(margin.top * -1)" 
+            :y="(margin.top * -1 )+15" 
             v-on:click="selectNode" 
             :id="parentId">
           </rect>
@@ -23,7 +23,7 @@
             class="grandparentText"
             dy=".65em" 
             x="6" 
-            y="-14">
+            y="0">
             
             {{ selectedNode.id }}
           </text>
@@ -75,7 +75,8 @@
        
                 <!-- Generate the children squares (only visible on hover of a square) -->
           <g v-for="child in children._children" 
-            :key="'c_' + child.id" >
+            :key="'c_' + child.id"
+            class="childG" >
             <rect 
 
               v-on:click="selectNode" 
@@ -92,11 +93,10 @@
             </rect>
             <!-- ticker TEXT ********************************* -->
               <text 
-              dy="1em"
               class="childTickerName"
               :key="'name_t_' + child.id" 
               :x="XText(child.x0,child.x1)"  
-              :y="y(child.y0)+16" 
+              :y="YText2(child.y0,child.y1)"
               :style="tickerTextFontSizeAdjust(child.x0,child.x1,child.y0,child.y1)"
               >
               {{ child.data.name }}
@@ -124,25 +124,25 @@
               :y="y(children.y0)" 
               :width="x(children.x1 - children.x0 + children.parent.x0)" 
               height="15"
-              style= "fill:black"
               >
             </rect>
             <rect
+              class="littleSquare"
               :x="x(children.x0)+5"  
-              :y="y(children.y0)+4" 
+              :y="y(children.y0)+8" 
               width="10" height="10" 
-              style="fill:black;transform-box:fill-box;"
+              style="fill:#262931;transform-box:fill-box;"
               transform="rotate(45)"
               transform-origin="50% 50%"
               >
             </rect>
              <text
+              class="parentSquareText"
               v-if="selectedNode.depth == 0" 
-              dy="0.7em"
+              dy="0.8em"
               :key="'name_' + children.data.id" 
               :x="x(children.x0) + 6" 
               :y="y(children.y0)" 
-              style="fill: white;font-size:0.6rem"
               >
               {{ children.data.name }}
             </text>
@@ -289,10 +289,11 @@ export default {
       // .tile(d3.treemapResquarify)
       .size([this.width, this.height])
       .round(false)
-     
-      // .paddingInner(1)
+      .paddingTop(15)
       // .paddingOuter(1)
-      // .paddingTop(15)
+      .paddingRight(1)
+      .paddingLeft(1)
+      .paddingBottom(1)
     },
     // The current selected node
     selectedNode () {
@@ -365,7 +366,6 @@ export default {
     // and the template reflects the changes
     selectNode (event) {
       // console.log(event.target.id);
-      
       this.selected = event.target.id
     },
        XText (x0,x1) {
@@ -374,20 +374,23 @@ export default {
       YText (y0,y1) {
         return ((y1 - y0) /2) + y0
       },
+      YText2 (y0,y1) {
+        return ((y1 - y0) /4) + y0
+      },
     tickerTextFontSizeAdjust(x0,x1,y0,y1){
        let c =((((x1 - x0)*(y1-y0))*100)/(this.height*this.width));
         // console.log(c);
         // console.log(name);
    
-        if (c>=4) return "font-size:1.9rem"
+        if (c>=4) return "font-size:1.7rem"
         if (c<4 && c >= 3) return "font-size:1.4rem";
         if (c <3  && c>=2) return "font-size:1.2rem";
         if (c<2 && c>=1) return "font-size:1rem"
-        if (c<1 && c>=0.8) return "font-size:0.8rem"
-        if (c<0.8 && c>=0.6) return "font-size:0.6rem"
-        if (c<0.6 && c>=0.5) return "font-size:0.5rem"
+        if (c<1 && c>=0.8) return "font-size:0.95rem"
+        if (c<0.8 && c>=0.6) return "font-size:0.75rem"
+        if (c<0.6 && c>=0.5) return "font-size:0.65rem"
 
-        if (c<0.5 && c>=0.1) return "font-size:0.4rem"
+        if (c<0.5 && c>=0.1) return "font-size:0.6rem"
         if (c < 0.1) return "font-size:0rem"
         //  if (c>70) return "font-size:1rem"
         // if (c<=70 && c > 50) return "font-size:0.9rem";
@@ -450,7 +453,7 @@ text {
 
 rect {
   fill: none;
-  stroke: rgb(5, 0, 0);
+  stroke: #262931
   
 }
 
@@ -481,6 +484,12 @@ rect {
   stroke:rgb(36, 30, 30);
   /* margin-bottom: 20px !important; */
 }
+.child:hover   {
+    opacity: 40%;
+}
+.childG:hover *{
+text-shadow: 1px 1px #000000;
+}
 .childTickerName {
   fill:white;
   text-anchor: middle;
@@ -498,6 +507,10 @@ rect {
 .children rect.parent,
 .grandparent rect {
   cursor: pointer;
+}
+.parentSquareText{
+  fill:white;
+  font-size:0.6rem;
 }
 
 .children rect.parent {
@@ -519,7 +532,12 @@ rect {
   
 }
 .grandparentText{
+  
   color: #bbb !important;
+}
+.parentSquare{
+      fill:#262931;
+
 }
 .list-enter-active, .list-leave-active {
   transition: all 1s;
@@ -527,5 +545,21 @@ rect {
 .list-enter, .list-leave-to /* .list-leave-active for <2.1.8 */ {
   opacity: 0;
 }
-    
+.children:hover rect.child{
+  stroke:yellow;
+  stroke-width:2px;
+}
+.children:hover rect.parentSquare{
+  stroke:yellow;
+  fill:yellow !important;
+  stroke-width:2px;
+}
+.children:hover rect.littleSquare{
+  stroke:yellow;
+  fill:yellow !important;
+  stroke-width:2px;
+}
+.children:hover text.parentSquareText{
+  fill:black !important;
+}
 </style>
