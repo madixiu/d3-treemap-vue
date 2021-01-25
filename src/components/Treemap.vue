@@ -111,34 +111,24 @@
             
             </rect>
               <text 
-              dy="0.7em"
-              :key="'t_' + child.id" 
-              :x="x(child.x0)+10"  
+              dy="1em"
+              :key="'name_t_' + child.id" 
+              :x="XText(child.x0,child.x1)"  
               :y="y(child.y0)+16" 
               
-              style="fill: white;font-size:0.6rem;text-anchor='middle'"
+              style="fill: white;font-size:0.9rem;text-anchor='middle'"
               >
               {{ child.data.name }}
             </text>
                <text 
               dy="0.7em"
-              :key="'t_' + child.id" 
-              :x="x(child.x0)+10" 
-              :y="y(child.y0)+29" 
+              :key="'percent_t_' + child.id" 
+              :x="XText(child.x0,child.x1)" 
+              :y="YText(child.y0,child.y1)" 
               
               style="fill: white;font-size:0.6rem;text-anchor='middle'"
               >
-              {{ child.x0 }}
-            </text>
-               <text 
-              dy="0.7em"
-              :key="'t_' + child.id" 
-              :x="x(child.x0)+10" 
-              :y="y(child.y0)+36" 
-              
-              style="fill: white;font-size:0.6rem;text-anchor='middle'"
-              >
-              {{ child.x1}}
+              {{ child.data.change + '%' }}
             </text>
           </g>
       
@@ -148,7 +138,7 @@
               :key="'name_' + children.data.id" 
               :x="x(children.x0) + 6" 
               :y="y(children.y0)" 
-              style="fill: white;font-size:0.8rem"
+              style="fill: white;font-size:0.6rem"
               >
               {{ children.data.name }}
             </text>
@@ -234,7 +224,7 @@ export default {
         that.initialize()
         that.accumulate(that.rootNode, that)
         that.treemap(that.rootNode)
-        console.log(this.rootNode);
+        // console.log(this.rootNode);
 
       // }
     // )
@@ -263,11 +253,7 @@ export default {
         .domain([0, this.height - this.margin.top - this.margin.bottom])
         .range([0, this.height - this.margin.top - this.margin.bottom])
     },
-    // xText (x0,x1) {
-    //     // let parentData = d3.select(input).datum()
-    //     // return (parentData.x1 - parentData.x0) / 2
-    //     return (x1 - x0) /2
-    //   },
+
     yText (input) {
         let parentData = d3.select(input).datum()
         return (parentData.x1 - parentData.x0) / 2
@@ -307,7 +293,7 @@ export default {
       // Recalculates the y and x domains
       this.x.domain([node.x0, node.x0 + (node.x1 - node.x0)])
       this.y.domain([node.y0, node.y0 + (node.y1 - node.y0)])
-      console.log(node);
+      // console.log(node);
       return node
     }
   },
@@ -358,14 +344,15 @@ export default {
     // which fires the computed selectedNode, which in turn finds the Node by the id of the square clicked
     // and the template reflects the changes
     selectNode (event) {
-      console.log(event.target.id);
+      // console.log(event.target.id);
       
       this.selected = event.target.id
     },
        XText (x0,x1) {
-        // let parentData = d3.select(input).datum()
-        // return (parentData.x1 - parentData.x0) / 2
-        return (x1 - x0) /2
+        return ((x1 - x0) /2) + x0 - 20
+      },
+      YText (y0,y1) {
+        return ((y1 - y0) /2) + y0
       },
     getColor(val) {
       let color = "red";
