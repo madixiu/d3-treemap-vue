@@ -191,7 +191,7 @@ export default {
     // .selectAll("indTitle")
     // .data(root.descendants().filter(d => d.depth == 1))
     // .enter()
-    // .append("circle")
+    // .append("rect")
     // .style("fill","red")
     // // .attr("id", d => (d.leafUid = "#leaf").id)
     // //   .attr("width", 10)

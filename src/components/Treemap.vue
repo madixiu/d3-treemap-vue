@@ -36,8 +36,7 @@
           <g 
             class="children" 
             v-for="children in selectedNode._children" 
-            :key="'c_' + children.id" 
-            
+            :key="'c_' + children.id"
             >
              
 
@@ -51,8 +50,7 @@
             <rect 
               
               class="parent" 
-                            :id="children.id" 
-
+              :id="children.id" 
               :key="children.data.id" 
               :x="x(children.x0)" 
               :y="y(children.y0)" 
@@ -73,26 +71,8 @@
               >
               {{ children.data.name }}</text> -->
             </rect>
-            <rect
-              v-if="selectedNode.depth == 0"
-              class="parentSquare"
-              :x="x(children.x0)" 
-              :y="y(children.y0)" 
-              :width="x(children.x1 - children.x0 + children.parent.x0)" 
-              height="10"
-              style= "fill:black"
-            >
-            <!-- <text
-             class="parentText"
-              dy="1em" 
-              :key="'t_' + children.id" 
-              :x="x(children.x0) + 60" 
-              :y="y(children.y0) + 6" 
-              style="fill:white;"
-              >
-               {{ children.data.name }}
-            </text> -->
-            </rect>
+
+       
                 <!-- Generate the children squares (only visible on hover of a square) -->
           <g v-for="child in children._children" 
             :key="'c_' + child.id" >
@@ -105,35 +85,73 @@
               :height="y(child.y1) - y(child.y0)" 
               :width="x(child.x1) - x(child.x0)" 
               :x="x(child.x0)" 
-              :y="y(child.y0)+10"
+              :y="y(child.y0)"
               :style="getColor(child.data.change)"
               >
             
             </rect>
+            <!-- ticker TEXT ********************************* -->
               <text 
               dy="1em"
+              class="childTickerName"
               :key="'name_t_' + child.id" 
               :x="XText(child.x0,child.x1)"  
               :y="y(child.y0)+16" 
-              
-              style="fill: white;font-size:0.9rem;text-anchor='middle'"
+              :style="tickerTextFontSizeAdjust(child.x0,child.x1,child.y0,child.y1)"
               >
               {{ child.data.name }}
             </text>
-               <text 
+            <text 
+              class="childTickerValue"
               dy="0.7em"
               :key="'percent_t_' + child.id" 
               :x="XText(child.x0,child.x1)" 
               :y="YText(child.y0,child.y1)" 
               
-              style="fill: white;font-size:0.6rem;text-anchor='middle'"
+              :style="tickerTextFontSizeAdjust(child.x0,child.x1,child.y0,child.y1)"
               >
               {{ child.data.change + '%' }}
             </text>
+              <!-- ticker TEXT ********************************* -->
           </g>
+
+           <!-- HEADER SQUARES WITH NAMES ***************************** -->
+          <g v-if="selectedNode.depth == 0">
+            <rect
+              
+              class="parentSquare"
+              :x="x(children.x0)" 
+              :y="y(children.y0)" 
+              :width="x(children.x1 - children.x0 + children.parent.x0)" 
+              height="15"
+              style= "fill:black"
+              >
+            </rect>
+            <rect
+              :x="x(children.x0)+5"  
+              :y="y(children.y0)+4" 
+              width="10" height="10" 
+              style="fill:black;transform-box:fill-box;"
+              transform="rotate(45)"
+              transform-origin="50% 50%"
+              >
+            </rect>
+             <text
+              v-if="selectedNode.depth == 0" 
+              dy="0.7em"
+              :key="'name_' + children.data.id" 
+              :x="x(children.x0) + 6" 
+              :y="y(children.y0)" 
+              style="fill: white;font-size:0.6rem"
+              >
+              {{ children.data.name }}
+            </text>
+          </g>
+           <!-- HEADER SQUARES WITH NAMES ***************************** -->
       
             <!-- The visible square text element with the title and value of the child node -->
-            <text 
+            <text
+              v-if="selectedNode.depth == 1" 
               dy="0.7em"
               :key="'name_' + children.data.id" 
               :x="x(children.x0) + 6" 
@@ -186,6 +204,8 @@ export default {
     return {
       jsonData: null,
       rootNode: {},
+      finalR:[],
+      dict:{},
       margin: {
         top: 20,
         right: 0,
@@ -193,7 +213,7 @@ export default {
         left: 0
       },
       width: 1350,
-      height: 580,
+      height: 600,
       selected: null,
       // color: {}
       colors: ["fill:#AA2121", "fill:#C84040", "fill:#ED7171", "fill:#33BA33", "fill:#518651", "fill:#215E2C"]
@@ -349,11 +369,34 @@ export default {
       this.selected = event.target.id
     },
        XText (x0,x1) {
-        return ((x1 - x0) /2) + x0 - 20
+        return ((x1 - x0) /2) + x0
       },
       YText (y0,y1) {
         return ((y1 - y0) /2) + y0
       },
+    tickerTextFontSizeAdjust(x0,x1,y0,y1){
+       let c =((((x1 - x0)*(y1-y0))*100)/(this.height*this.width));
+        // console.log(c);
+        // console.log(name);
+   
+        if (c>=4) return "font-size:1.9rem"
+        if (c<4 && c >= 3) return "font-size:1.4rem";
+        if (c <3  && c>=2) return "font-size:1.2rem";
+        if (c<2 && c>=1) return "font-size:1rem"
+        if (c<1 && c>=0.8) return "font-size:0.8rem"
+        if (c<0.8 && c>=0.6) return "font-size:0.6rem"
+        if (c<0.6 && c>=0.5) return "font-size:0.5rem"
+
+        if (c<0.5 && c>=0.1) return "font-size:0.4rem"
+        if (c < 0.1) return "font-size:0rem"
+        //  if (c>70) return "font-size:1rem"
+        // if (c<=70 && c > 50) return "font-size:0.9rem";
+        // if (c <= 50 && c>40) return "font-size:0.8rem";
+
+        // // if (c < 5) c = 0;
+        // if (c>=30 && c<=40) return "font-size:0.5rem"
+        // if (c < 30) return "font-size:0rem"
+    },
     getColor(val) {
       let color = "red";
       // console.log(val);
@@ -421,15 +464,31 @@ rect {
   /* color: aliceblue; */
   
 }
+.parentSquare {
+  stroke: #bbb;
+}
 .parentText {
   fill:blanchedalmond
 }
 /* .grandparent:hover rect {
   fill: #ee9700;
 } */
+/* g .children {
+  margin-top: 20px;
+} */
 .child {
   cursor: pointer;
-  stroke:rgb(36, 30, 30)
+  stroke:rgb(36, 30, 30);
+  /* margin-bottom: 20px !important; */
+}
+.childTickerName {
+  fill:white;
+  text-anchor: middle;
+}
+.childTickerValue {
+  fill: white;
+  text-align: center;
+  text-anchor: middle;
 }
 /* .parent:hover {
   cursor: pointer;

@@ -1,7 +1,6 @@
 <template>
   <div>
     <Treemap />
-    here
   </div>
 </template>
 
