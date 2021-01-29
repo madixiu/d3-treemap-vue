@@ -1,6 +1,15 @@
+/* eslint-disable vue/no-use-v-if-with-v-for */
 /* eslint-disable vue/no-unused-vars */
 <template>
   <div class="treemap">
+             <div id="tooltip"
+             v-if="tooltip"
+          class="tooltip" 
+          :style="{ left: pageX+'px', top: pageY+'px'}">
+          <span style="font-size:0.7rem">
+              {{name}}
+          </span>
+            </div>
     <!-- The SVG structure is explicitly defined in the template with attributes derived from component data -->
     <svg :height="height" style="margin-left: 0px;" :width="width">
       <g style="shape-rendering: crispEdges;" transform="translate(0,20)">
@@ -8,8 +17,8 @@
         <g class="grandparent">
           
           <rect 
-            :height="height" 
-            :width="width" 
+            :height="20" 
+            :width="width-2" 
             :y="(margin.top * -1 )+15" 
             v-on:click="selectNode" 
             :id="parentId">
@@ -34,9 +43,12 @@
         >
           <!-- Generate each of the visible squares at a given zoom level (the current selected node) -->
           <g 
+            
             class="children" 
             v-for="children in selectedNode._children" 
             :key="'c_' + children.id"
+              @mouseover="mouse_move(children,$event)"
+              @mouseleave="tooltip = false"
             >
              
 
@@ -47,8 +59,8 @@
               You can attribute directly an event, that fires a method that changes the current node,
               restructuring the data tree, that reactivly gets reflected in the template.
             -->
-            <rect 
-              
+            <g v-if="selectedNode.depth==1">
+            <!-- <rect 
               class="parent" 
               :id="children.id" 
               :key="children.data.id" 
@@ -58,19 +70,41 @@
               :height="y(children.y1 - children.y0 + children.parent.y0)" 
               :style="getColor(children.data.change)"
               >
-              
-              <!-- The title attribute -->
-              <!-- <title>{{ children.data.name }} | {{ children.value }}</title> -->
-              <!-- <text
-              class="parentText"
-              dy="1em" 
-              :key="'t_' + children.id" 
-              :x="x(children.x0) + 60" 
-              :y="y(children.y0) + 6" 
-              style="fill:white;"
+            </rect> -->
+            <rect 
+              class="parent" 
+              :id="children.id" 
+              :key="children.data.id" 
+              :x="x(children.x0)" 
+              :y="y(children.y0)" 
+              :width="x(children.x1 - children.x0 + children.parent.x0)" 
+              :height="y(children.y1 - children.y0 + children.parent.y0)" 
+              :style="getColor(children.data.change)"
               >
-              {{ children.data.name }}</text> -->
             </rect>
+              <text
+              dy="0.7em"
+              :key="'name_' + children.data.id" 
+              :x="x(children.x0) + 6" 
+              :y="y(children.y0)" 
+              style="fill: white;font-size:0.6rem"
+              >
+              {{ children.data.name }}
+            </text>
+            
+            <text 
+              dy="2.25em" 
+              :key="'change_' + children.data.id" 
+              :x="x(children.x0) + 6" 
+              :y="y(children.y0) + 6" 
+              style="fill-opacity: 1;"
+              >
+
+              {{ children.data.change }}
+            </text>
+            </g>
+      
+
 
        
                 <!-- Generate the children squares (only visible on hover of a square) -->
@@ -88,8 +122,13 @@
               :x="x(child.x0)" 
               :y="y(child.y0)"
               :style="getColor(child.data.change)"
+
               >
-            
+              
+           
+              
+                   
+
             </rect>
             <!-- ticker TEXT ********************************* -->
               <text 
@@ -150,34 +189,14 @@
            <!-- HEADER SQUARES WITH NAMES ***************************** -->
       
             <!-- The visible square text element with the title and value of the child node -->
-            <text
-              v-if="selectedNode.depth == 1" 
-              dy="0.7em"
-              :key="'name_' + children.data.id" 
-              :x="x(children.x0) + 6" 
-              :y="y(children.y0)" 
-              style="fill: white;font-size:0.6rem"
-              >
-              {{ children.data.name }}
-            </text>
-            
-            <text 
-              dy="2.25em" 
-              :key="'change_' + children.data.id" 
-              :x="x(children.x0) + 6" 
-              :y="y(children.y0) + 6" 
-              style="fill-opacity: 1;"
-              >
-
-              {{ children.data.change }}
-            </text>
-
+          
           </g>
         </transition-group>
 
     
       </g>
     </svg>
+  
   </div>
 </template>
 
@@ -202,8 +221,12 @@ export default {
   // the component's data
   data () {
     return {
+      pageX:null,
+      pageY:null,
+      tooltip:false,
       jsonData: null,
       rootNode: {},
+      name:"",
       finalR:[],
       dict:{},
       margin: {
@@ -225,6 +248,7 @@ export default {
     selectedNode (newData, oldData) {
       console.log('The selected node changed...')
       console.log( newData.data);
+      console.log(newData.y0,newData.x0,newData.y1,newData.x1);
     }
   },
   // In the beginning...
@@ -244,7 +268,6 @@ export default {
         that.initialize()
         that.accumulate(that.rootNode, that)
         that.treemap(that.rootNode)
-        // console.log(this.rootNode);
 
       // }
     // )
@@ -274,10 +297,15 @@ export default {
         .range([0, this.height - this.margin.top - this.margin.bottom])
     },
 
-    yText (input) {
-        let parentData = d3.select(input).datum()
-        return (parentData.x1 - parentData.x0) / 2
-      },
+    // yText (input) {
+    //     let parentData = d3.select(input).datum()
+    //     return (parentData.x1 - parentData.x0) / 2
+    //   },
+    yParent2() {
+      return d3.scaleLinear()
+      .domain([0, this.height])
+        .range([0, this.height])
+    },
     yParent() {
       return d3.scaleLinear()
       .domain([0, this.height - this.margin.top - this.margin.bottom])
@@ -312,9 +340,12 @@ export default {
       }
 
       // Recalculates the y and x domains
+      // this.x.domain([node.x0, node.x0 + (node.x1 - node.x0)])
+      // this.y.domain([node.y0, node.y0 + (node.y1 - node.y0)])
       this.x.domain([node.x0, node.x0 + (node.x1 - node.x0)])
       this.y.domain([node.y0, node.y0 + (node.y1 - node.y0)])
-      // console.log(node);
+      console.log(node);
+      // console.log(this.y.domain([node.y0, node.y0 + (node.y1 - node.y0)]));
       return node
     }
   },
@@ -367,6 +398,7 @@ export default {
     selectNode (event) {
       // console.log(event.target.id);
       this.selected = event.target.id
+      // this.accumulate(this.selected,this)
     },
        XText (x0,x1) {
         return ((x1 - x0) /2) + x0
@@ -377,6 +409,30 @@ export default {
       YText2 (y0,y1) {
         return ((y1 - y0) /4) + y0
       },
+    test(input) {
+       return d3.scaleLinear()
+      .domain([0, input])
+        .range([0, this.width])
+    },
+    test2(input) {
+       return d3.scaleLinear()
+      .domain([0, input])
+        .range([0, this.height])
+    },
+    mouse_move(key,eve) {
+      // let tool = document.getElementById("tooltip")
+      // tool.innerHTML[0]
+        this.tooltip = true;
+        this.name = key.data.name
+        this.pageX = eve.pageX
+        this.pageY = eve.pageY
+
+        // console.log("MM ", key,eve);
+        
+        // console.log(eve);
+      
+    },
+
     tickerTextFontSizeAdjust(x0,x1,y0,y1){
        let c =((((x1 - x0)*(y1-y0))*100)/(this.height*this.width));
         // console.log(c);
@@ -561,5 +617,21 @@ text-shadow: 1px 1px #000000;
 }
 .children:hover text.parentSquareText{
   fill:black !important;
+}
+#tooltip {
+  position: absolute;
+  top:20px;
+  right:20px;
+  width: 120px;
+  height: auto;
+  padding: 5px;
+  background-color: white;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+  -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
 }
 </style>
