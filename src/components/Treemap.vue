@@ -1,17 +1,29 @@
 /* eslint-disable vue/no-use-v-if-with-v-for */
 /* eslint-disable vue/no-unused-vars */
 <template>
-  <div class="treemap">
-             <div id="tooltip"
-             v-if="tooltip"
+   <div class="treemap">
+      <div id="tooltip"
+          v-if="tooltip && selectedNode.depth == 0"
           class="tooltip" 
           :style="{ left: pageX+'px', top: pageY+'px'}">
-          <span style="font-size:0.7rem">
-              {{name}}
+          <span style="font-size:0.8rem">
+              {{tooltipHeaderName}}
           </span>
-            </div>
+          <hr>
+        <div style="direction:rtl">
+            <p style="font-size:0.7rem;direction:rtl">
+              <span> {{tooltipListOfChilds[0].name}}</span>
+              <span style="font-size:0.7rem">{{tooltipListOfChilds[0].change}}</span>
+            </p>
+         
+        </div>
+         
+      </div>
     <!-- The SVG structure is explicitly defined in the template with attributes derived from component data -->
     <svg :height="height" style="margin-left: 0px;" :width="width">
+  
+
+
       <g style="shape-rendering: crispEdges;" transform="translate(0,20)">
             <!-- The top most element, representing the previous node -->
         <g class="grandparent">
@@ -34,7 +46,7 @@
             x="6" 
             y="0">
             
-            {{ selectedNode.id }}
+            {{ selectedNode.data.name }}
           </text>
         </g>
         <!-- We can use Vue transitions too! -->
@@ -47,7 +59,7 @@
             class="children" 
             v-for="children in selectedNode._children" 
             :key="'c_' + children.id"
-              @mouseover="mouse_move(children,$event)"
+              @mousemove="mouse_move(children,$event)"
               @mouseleave="tooltip = false"
             >
              
@@ -60,47 +72,38 @@
               restructuring the data tree, that reactivly gets reflected in the template.
             -->
             <g v-if="selectedNode.depth==1">
-            <!-- <rect 
-              class="parent" 
-              :id="children.id" 
-              :key="children.data.id" 
-              :x="x(children.x0)" 
-              :y="y(children.y0)" 
-              :width="x(children.x1 - children.x0 + children.parent.x0)" 
-              :height="y(children.y1 - children.y0 + children.parent.y0)" 
-              :style="getColor(children.data.change)"
-              >
-            </rect> -->
             <rect 
               class="parent" 
               :id="children.id" 
               :key="children.data.id" 
               :x="x(children.x0)" 
-              :y="y(children.y0)" 
+              :y="y(children.y0)+15" 
               :width="x(children.x1 - children.x0 + children.parent.x0)" 
               :height="y(children.y1 - children.y0 + children.parent.y0)" 
               :style="getColor(children.data.change)"
               >
             </rect>
               <text
-              dy="0.7em"
-              :key="'name_' + children.data.id" 
+              dy="1em"
+              :key="'name_' + children.data.id"
               :x="x(children.x0) + 6" 
-              :y="y(children.y0)" 
+              :y="y(children.y0) + 15" 
               style="fill: white;font-size:0.6rem"
+              :style="InnerTickerTextFontSizeAdjust(children)"
               >
               {{ children.data.name }}
             </text>
             
             <text 
-              dy="2.25em" 
+              dy="2.3em" 
               :key="'change_' + children.data.id" 
               :x="x(children.x0) + 6" 
-              :y="y(children.y0) + 6" 
-              style="fill-opacity: 1;"
+              :y="y(children.y0) + 15" 
+              style="fill-opacity:1;fill:white"
+              :style="InnerTickerTextFontSizeAdjust(children)"
               >
 
-              {{ children.data.change }}
+              {{ children.data.change }}%
             </text>
             </g>
       
@@ -142,7 +145,7 @@
             </text>
             <text 
               class="childTickerValue"
-              dy="0.7em"
+              dy="0.3em"
               :key="'percent_t_' + child.id" 
               :x="XText(child.x0,child.x1)" 
               :y="YText(child.y0,child.y1)" 
@@ -195,6 +198,22 @@
 
     
       </g>
+
+      <!-- ************* SVG TOOLTIP PLACEMENT ************************* -->
+          <!-- <g id="tooltip"  v-if="tooltip && selectedNode.depth == 0"
+          class="tooltip">
+          <rect
+          :x="pageX"
+          :y="pageY"
+          height="20"
+          width="50"
+          style="fill:black">
+          </rect>
+              <text style="font-size:0.8rem;fill:black" :x="pageX"
+          :y="pageY">
+              {{tooltipHeaderName}}
+          </text>
+          </g> -->
     </svg>
   
   </div>
@@ -222,11 +241,13 @@ export default {
   data () {
     return {
       pageX:null,
+      MainScaleNode:null,
       pageY:null,
       tooltip:false,
       jsonData: null,
       rootNode: {},
-      name:"",
+      tooltipHeaderName:null,
+      tooltipListOfChilds:[],
       finalR:[],
       dict:{},
       margin: {
@@ -238,8 +259,8 @@ export default {
       width: 1350,
       height: 600,
       selected: null,
-      // color: {}
-      colors: ["fill:#AA2121", "fill:#C84040", "fill:#ED7171", "fill:#33BA33", "fill:#518651", "fill:#215E2C"]
+      colors: ["fill:#e41414", "fill:#c91010", "fill:#ab0e0e", "fill:#870c0c", "fill:#690808", "fill:#3f4c53"
+      , "fill:#006920" , "fill:#008729", "fill:#009e30", "fill:#00bd39", "fill:#00d641"]
     }
   },
   // You can do whatever when the selected node changes
@@ -248,7 +269,20 @@ export default {
     selectedNode (newData, oldData) {
       console.log('The selected node changed...')
       console.log( newData.data);
-      console.log(newData.y0,newData.x0,newData.y1,newData.x1);
+      if (newData.depth == 1){
+        // this.initialize()
+        this.accumulate(this.rootNode, this)
+        this.InnerScaleTreemap(this.rootNode)
+      }
+        
+      else if(newData.depth == 0 && oldData.depth == 1) {
+        this.initialize()
+        this.accumulate(this.rootNode, this)
+        this.treemap(this.rootNode)
+      }
+        
+
+      // console.log(newData.y0,newData.x0,newData.y1,newData.x1);
     }
   },
   // In the beginning...
@@ -257,7 +291,7 @@ export default {
 
     // An array with colors (can probably be replaced by a vuejs method)
     // that.color = d3.scaleOrdinal(d3.schemeCategory20)
-    that.color = d3.scaleOrdinal().range(['#5EAFC6', '#FE9922', '#93c464', '#75739F'])
+    // that.color = d3.scaleOrdinal().range(['#5EAFC6', '#FE9922', '#93c464', '#75739F'])
 
     // loads the data and calls the initialization methods
     // d3.json('@components/data/map2.json',
@@ -267,7 +301,13 @@ export default {
         that.jsonData = data
         that.initialize()
         that.accumulate(that.rootNode, that)
+        // that.InnerScaleTreemap(that.rootNode)
+
         that.treemap(that.rootNode)
+        
+        // console.log(that.InnerScaleTreemap(that.rootNode));
+        // that.MainScaleNode = that.InnerScaleTreemap(that.rootNode)
+
 
       // }
     // )
@@ -297,10 +337,6 @@ export default {
         .range([0, this.height - this.margin.top - this.margin.bottom])
     },
 
-    // yText (input) {
-    //     let parentData = d3.select(input).datum()
-    //     return (parentData.x1 - parentData.x0) / 2
-    //   },
     yParent2() {
       return d3.scaleLinear()
       .domain([0, this.height])
@@ -323,6 +359,7 @@ export default {
       .paddingLeft(1)
       .paddingBottom(1)
     },
+
     // The current selected node
     selectedNode () {
       let node = null
@@ -340,12 +377,15 @@ export default {
       }
 
       // Recalculates the y and x domains
-      // this.x.domain([node.x0, node.x0 + (node.x1 - node.x0)])
-      // this.y.domain([node.y0, node.y0 + (node.y1 - node.y0)])
       this.x.domain([node.x0, node.x0 + (node.x1 - node.x0)])
       this.y.domain([node.y0, node.y0 + (node.y1 - node.y0)])
-      console.log(node);
-      // console.log(this.y.domain([node.y0, node.y0 + (node.y1 - node.y0)]));
+
+      /*
+      **** IMPORTANT *****
+      SUPRISINGLY it works the way we want by this LOG line!!!
+      have to figure out a way to get rid  of this!!!!!
+      */
+      console.log(this.MainScaleNode);
       return node
     }
   },
@@ -398,16 +438,17 @@ export default {
     selectNode (event) {
       // console.log(event.target.id);
       this.selected = event.target.id
+
       // this.accumulate(this.selected,this)
     },
        XText (x0,x1) {
         return ((x1 - x0) /2) + x0
       },
       YText (y0,y1) {
-        return ((y1 - y0) /2) + y0
+        return ((y1 - y0) /2) + y0 -7
       },
       YText2 (y0,y1) {
-        return ((y1 - y0) /4) + y0
+        return ((y1 - y0) /4) + y0 - 7
       },
     test(input) {
        return d3.scaleLinear()
@@ -421,18 +462,48 @@ export default {
     },
     mouse_move(key,eve) {
       // let tool = document.getElementById("tooltip")
-      // tool.innerHTML[0]
         this.tooltip = true;
-        this.name = key.data.name
+        this.tooltipHeaderName = key.data.name
+        this.tooltipListOfChilds = key.data.children
         this.pageX = eve.pageX
         this.pageY = eve.pageY
-
-        // console.log("MM ", key,eve);
-        
+        let t = eve.target.id.split(".")
+        console.log("MM ",t[t.length-1])
+        // console.log(this.tooltipHeaderName,this.tooltipListOfChilds);
         // console.log(eve);
       
     },
+    InnerScaleTreemap (input) {
+      let t =  d3.treemap()
+      .size([this.width, this.height])
+      .round(false)
+      .paddingBottom(15)
 
+      // return treemap(input)
+      this.MainScaleNode = t(input)
+      // return this.MainScaleNode;
+      // this.MainScaleNode = null;
+
+    },
+    InnerTickerTextFontSizeAdjust(children){
+        let width=children.parent.x1 - children.parent.x0
+        
+        let height=children.parent.y1 - children.parent.y0
+
+       let c =((((children.x1 - children.x0)*(children.y1-children.y0))*100)/(height*width));
+        if (c>=4) return "font-size:1.4rem"
+        if (c<4 && c >= 3) return "font-size:1.3rem";
+        if (c <3  && c>=2) return "font-size:1.2rem";
+        if (c<2 && c>=1) return "font-size:1rem"
+        if (c<1 && c>=0.8) return "font-size:0.95rem"
+        if (c<0.8 && c>=0.6) return "font-size:0.75rem"
+        if (c<0.6 && c>=0.5) return "font-size:0.65rem"
+
+        if (c<0.5 && c>=0.1) return "font-size:0.5rem"
+        if (c < 0.1 && c>=0.07) return "font-size:0.4rem"
+        if (c < 0.07 && c>=0.04) return "font-size:0.3rem"
+
+    },
     tickerTextFontSizeAdjust(x0,x1,y0,y1){
        let c =((((x1 - x0)*(y1-y0))*100)/(this.height*this.width));
         // console.log(c);
@@ -446,45 +517,49 @@ export default {
         if (c<0.8 && c>=0.6) return "font-size:0.75rem"
         if (c<0.6 && c>=0.5) return "font-size:0.65rem"
 
-        if (c<0.5 && c>=0.1) return "font-size:0.6rem"
+        if (c<0.5 && c>=0.1) return "font-size:0.5rem"
         if (c < 0.1) return "font-size:0rem"
-        //  if (c>70) return "font-size:1rem"
-        // if (c<=70 && c > 50) return "font-size:0.9rem";
-        // if (c <= 50 && c>40) return "font-size:0.8rem";
-
-        // // if (c < 5) c = 0;
-        // if (c>=30 && c<=40) return "font-size:0.5rem"
-        // if (c < 30) return "font-size:0rem"
+     
     },
     getColor(val) {
-      let color = "red";
+      let color = this.colors[5];
       // console.log(val);
-      val = Math.floor(val)
+      val = Math.round(val)
       switch (parseInt(val)) {
         case -5:
-        case -4:
           color = this.colors[0];
+          break;
+        case -4:
+          color = this.colors[1];
           break;
 
         case -3:
-          color = this.colors[1];
-          break;
-        case -2:
-        case -1:
           color = this.colors[2];
           break;
+        case -2:
+          color = this.colors[3]
+          break;
+        case -1:
+          color = this.colors[4];
+          break;
         case 0:
+          color = this.colors[5];
+          break;
         case 1:
-          color = this.colors[3];
+          color = this.colors[6];
           break;
         case 2:
+          color = this.colors[7];
+          break;
         case 3:
-          color = this.colors[4];
+          color = this.colors[8];
           break;
 
         case 4:
+            color = this.colors[9];
+          break;
         case 5:
-          color = this.colors[5];
+          color = this.colors[10];
           break;
         default:
           color = this.colors[5];
