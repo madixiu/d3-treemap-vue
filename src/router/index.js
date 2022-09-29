@@ -3,6 +3,7 @@ import VueRouter from 'vue-router'
 import Main from '../views/Main.vue'
 import Other from '../views/Other.vue'
 import Tooltip from '../views/Tooltip.vue'
+import final from '../views/final.vue'
 
 
 
@@ -13,6 +14,11 @@ const routes = [
     path: '/',
     name: 'Main',
     component: Main
+  },
+  {
+    path: '/final',
+    name: 'Final',
+    component: final
   },
   {
     path: '/other',

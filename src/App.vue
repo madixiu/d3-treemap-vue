@@ -3,7 +3,9 @@
     <div id="nav">
       <router-link to="/">Main</router-link> |
       <router-link to="/other">Other</router-link> |
-      <router-link to="/tooltip">Tooltip</router-link>
+      <router-link to="/tooltip">Tooltip</router-link> |
+      <router-link to="/final">final</router-link>
+
     </div>
     <router-view/>
   </div>

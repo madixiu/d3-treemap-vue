@@ -1,30 +1,52 @@
-/* eslint-disable vue/no-use-v-if-with-v-for */
-/* eslint-disable vue/no-unused-vars */
 <template>
-   <div class="treemap">
-      <div id="tooltip"
+   <div id="treemapContainer" class="treemap">
+      <!-- <div id="tooltip"
           v-if="tooltip && selectedNode.depth == 0"
-          class="tooltip" 
+          class="tooltip"
           :style="{ left: pageX+'px', top: pageY+'px'}">
           <span style="font-size:0.8rem">
               {{tooltipHeaderName}}
           </span>
           <hr>
         <div style="direction:rtl">
-            <p style="font-size:0.7rem;direction:rtl">
-              <span> {{tooltipListOfChilds[0].name}}</span>
-              <span style="font-size:0.7rem">{{tooltipListOfChilds[0].change}}</span>
+            <p style="font-size:0.7rem;direction:rtl" v-for="item in tooltipListOfChilds" :key="item.name">
+              <span> {{item.name}}</span>
+              <span style="font-size:0.7rem">{{item.change}}</span>
             </p>
          
         </div>
-         
+      </div> -->
+
+      <!-- <SvgPanZoom 
+        :style="`width: ${width}; height: ${height}`"
+        :zoomEnabled="true"
+        :controlIconsEnabled="true"
+        :fit="false"
+        :center="true"
+        :minZoom="1"
+    > -->
+    <div class="TreeMaps__ZoomControls">
+      <div class="ZoomIcon" @click="zoomIn()">
+        <svg viewBox="0 0 20 20" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.364 20H8.636v-8.636H0V8.636h8.636V0h2.728v8.636H20v2.728h-8.636V20z" fill="#fff"></path></svg>
       </div>
+      <div class="ZoomIcon" @click="zoomOut()">
+       <svg viewBox="0 0 20 4" width="20" height="4" fill="none" xmlns="http://www.w3.org/2000/svg" disabled=""><path d="M0 .636v2.728h20V.636H0z" fill="#fff"></path></svg>
+      </div>
+      <div class="ZoomIcon" @click="fullScreenMode()">
+        <svg v-if="!fullscreen" viewBox="0 0 14 14" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 9H0v5h5v-2H2V9zM0 5h2V2h3V0H0v5zm12 7H9v2h5V9h-2v3zM9 0v2h3v3h2V0H9z" fill="rgba(255, 255, 255, 0.5)"></path></svg>
+        <svg v-if="fullscreen" viewBox="0 0 14 14" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 11h3v3h2V9H0v2zm3-8H0v2h5V0H3v3zm6 11h2v-3h3V9H9v5zm2-11V0H9v5h5V3h-3z" fill="#fff"></path></svg>
+      </div>
+
+    </div>
+    
+     <panZoom ref="mapPanZoom" :options="{minZoom: 1, maxZoom: 7,bounds:true, boundsPadding: 1,
+    boundsDisabledForZoom: true}" @panstart="panned = true" @panend="panEndFunc"   style="height:100%;width:100%" selector="#MapSVG">
     <!-- The SVG structure is explicitly defined in the template with attributes derived from component data -->
-    <svg :height="height" style="margin-left: 0px;" :width="width">
+    <svg id="MapSVG" :viewBox="`0 0 ${width} ${height}`" style="margin-left: 0px;">
   
 
 
-      <g style="shape-rendering: crispEdges;" transform="translate(0,20)">
+      <g id="g1" style="shape-rendering: crispEdges;" transform="translate(0,20)">
             <!-- The top most element, representing the previous node -->
         <g class="grandparent">
           
@@ -215,14 +237,18 @@
           </text>
           </g> -->
     </svg>
+     </panZoom>
+      <!-- </SvgPanZoom> -->
   
   </div>
 </template>
 
 <script>
+// import panZoom from 'vue-panzoom'
 import {scaleLinear, scaleOrdinal} from 'd3-scale'
 // import {json} from 'd3-request'
 import {hierarchy, treemap} from 'd3-hierarchy'
+// import SvgPanZoom from 'vue-svg-pan-zoom';
 
 // To be explicit about which methods are from D3 let's wrap them around an object
 // Is there a better way to do this?
@@ -238,8 +264,12 @@ import data from "@/components/data/map2.json"
 export default {
   name: 'Treemap',
   // the component's data
+    // components: { panZoom },
   data () {
     return {
+      fullscreen:false,
+      // pannZoomElement:null,
+      panned:false,
       pageX:null,
       MainScaleNode:null,
       pageY:null,
@@ -258,6 +288,8 @@ export default {
       },
       width: 1350,
       height: 600,
+      originalSize:null,
+      fullscreenSize:null,
       selected: null,
       colors: ["fill:#e41414", "fill:#c91010", "fill:#ab0e0e", "fill:#870c0c", "fill:#690808", "fill:#3f4c53"
       , "fill:#006920" , "fill:#008729", "fill:#009e30", "fill:#00bd39", "fill:#00d641"]
@@ -288,6 +320,11 @@ export default {
   // In the beginning...
   mounted () {
     var that = this
+    this.originalSize = {height: this.height,width: this.width}
+    this.fullscreenSize = {height:window.screen.height,width:window.screen.width}
+
+    // this.pannZoomElement = document.getElementById('mapPanZoom')
+    
 
     // An array with colors (can probably be replaced by a vuejs method)
     // that.color = d3.scaleOrdinal(d3.schemeCategory20)
@@ -397,6 +434,11 @@ export default {
       if (that.jsonData) {
         that.rootNode = d3.hierarchy(that.jsonData)
         .eachBefore(function (d) { d.id = (d.parent ? d.parent.id + '.' : '') + d.data.name })
+        // .sum(function(){
+        //   return 5})
+        //    .sort(   (a, b) {
+        //   return b.height - a.height || b.value - a.value
+        // })
         .sum((d) => d.value)
         .sort(function (a, b) {
           return b.height - a.height || b.value - a.value
@@ -437,7 +479,13 @@ export default {
     // and the template reflects the changes
     selectNode (event) {
       // console.log(event.target.id);
-      this.selected = event.target.id
+      if (this.panned == false){
+        this.selected = event.target.id
+        console.log( this.$refs.mapPanZoom);
+        this.$refs.mapPanZoom.$panZoomInstance.zoomTo(0, 0, 0);
+
+      }
+      else return
 
       // this.accumulate(this.selected,this)
     },
@@ -467,8 +515,8 @@ export default {
         this.tooltipListOfChilds = key.data.children
         this.pageX = eve.pageX
         this.pageY = eve.pageY
-        let t = eve.target.id.split(".")
-        console.log("MM ",t[t.length-1])
+        // let t = eve.target.id.split(".")
+        // console.log("MM ",t[t.length-1])
         // console.log(this.tooltipHeaderName,this.tooltipListOfChilds);
         // console.log(eve);
       
@@ -566,6 +614,48 @@ export default {
       }
       return color;
     },
+    panEndFunc(){
+      setTimeout(() => {
+        this.panned = false
+      }, 1000);
+    },
+    fullScreenMode(){
+      let element = document.getElementById("treemapContainer")
+      if (!this.fullscreen){
+        this.height = this.fullscreenSize.height
+        this.width = this.fullscreenSize.width
+
+        this.initialize()
+        this.accumulate(this.rootNode, this)
+        this.treemap(this.rootNode)
+        element.requestFullscreen();
+        this.fullscreen = true;
+      }else {
+        this.height = this.originalSize.height
+        this.width = this.originalSize.width
+        this.initialize()
+        this.accumulate(this.rootNode, this)
+        this.treemap(this.rootNode)
+        document.exitFullscreen();
+        this.fullscreen = false;
+      }
+    },
+    zoomIn(){
+       let zoomData = this.$refs.mapPanZoom.$panZoomInstance.getTransform()
+       console.log(zoomData);
+       this.$refs.mapPanZoom.$panZoomInstance.smoothZoom(this.width/2, this.height/2, 1.1);
+    }
+    ,
+    zoomOut(){
+       let zoomData = this.$refs.mapPanZoom.$panZoomInstance.getTransform()
+       console.log(zoomData);
+       if (zoomData.scale > 1.1)
+       this.$refs.mapPanZoom.$panZoomInstance.smoothZoom(this.width/2, this.height/2, 0.9);
+       else if (zoomData.scale < 1.1)
+       this.$refs.mapPanZoom.$panZoomInstance.smoothZoom(0, 0, 0);
+
+    }
+
   }
 }
 </script>
@@ -700,6 +790,7 @@ text-shadow: 1px 1px #000000;
   width: 120px;
   height: auto;
   padding: 5px;
+  z-index: 96;
   background-color: white;
   -webkit-border-radius: 10px;
   -moz-border-radius: 10px;
@@ -708,5 +799,34 @@ text-shadow: 1px 1px #000000;
   -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
   box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
   pointer-events: none;
+}
+
+.TreeMaps__ZoomControls {
+    bottom: 44px;
+    display: flex;
+    flex-direction: column;
+    left: 20px;
+    position: fixed;
+    z-index: 3;
+}
+
+.TreeMaps__ZoomControls .ZoomIcon:first-child {
+    border-radius: 2px 2px 0 0;
+    margin-top: 0;
+}
+.ZoomIcon:last-child {
+    border-radius: 0 0 2px 2px;
+}
+
+.TreeMaps__ZoomControls .ZoomIcon {
+    align-items: center;
+    background: #323333;
+    cursor: pointer;
+    display: flex;
+    height: 32px;
+    justify-content: center;
+    margin-top: 2px;
+    opacity: 0.2;
+    width: 32px;
 }
 </style>
